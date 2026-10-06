@@ -1,8 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export default function Home() {
   const inputRef = useRef(null);
@@ -19,8 +24,13 @@ export default function Home() {
   async function loadHistory() {
     setLoadingHistory(true);
     try {
-      const response = await fetch('/api/history', { cache: 'no-store' });
-      const data = await response.json();
+      const { data, error } = await supabase.functions.invoke('error-ai', {
+        method: 'GET',
+      });
+
+      if (error) throw error;
+      const response = { ok: true };
+      const data = data || {};
       if (!response.ok) throw new Error(data.error || '기록을 불러오지 못했습니다.');
       setHistory(data.items || []);
     } catch (error) {
@@ -69,8 +79,13 @@ export default function Home() {
       form.append('errorText', errorText.trim());
       form.append('context', context.trim());
 
-      const response = await fetch('/api/analyze', { method: 'POST', body: form });
-      const data = await response.json();
+      const { data, error } = await supabase.functions.invoke('error-ai', {
+        body: form,
+      });
+
+      if (error) throw error;
+      const response = { ok: true };
+      const data = data || {};
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || '에러 분석에 실패했습니다.');
