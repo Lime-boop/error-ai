@@ -4,10 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+const SUPABASE_URL = 'https://eghkbgjebsoiybojvoak.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3euAUhIGpr_qgTr-rgtiaQ_SDHdPJ5U';
+const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 export default function Home() {
   const inputRef = useRef(null);
