@@ -258,6 +258,12 @@ async function handleAnalyze(req: Request) {
 - error_type: TypeError, Build Error, Network Error처럼 구체적인 오류 종류
 - language: 화면/메시지에서 추정 가능한 언어 또는 기술 스택
 - severity: low, medium, high, critical 중 하나
+  * low: 단일 코드/함수 수준의 일반적인 개발 오류. 프로그램의 일부 동작만 실패하고, 데이터 손실·보안 문제·서비스 전체 중단이 없음. 예: ZeroDivisionError, 단순 TypeError, 오타, 잘못된 인덱스.
+  * medium: 핵심 기능 하나가 막히거나 반복적으로 실패하지만, 서비스 전체 중단·중대한 데이터 손실·보안 침해는 없음.
+  * high: 다수 사용자가 영향을 받는 주요 기능 장애, 배포/빌드 전체 실패, 장시간 서비스 중단 가능성, 중요한 데이터 손상 위험이 실제 입력에서 확인됨.
+  * critical: 실제 보안 침해, 자격 증명 노출, 복구하기 어려운 데이터 손실, 프로덕션 전체 장애처럼 즉각 대응이 필요한 상황이 명확히 확인됨.
+  * 영향 범위가 입력에 명시되지 않았다면 high/critical로 추정하지 말고 low 또는 medium을 우선 선택하세요.
+  * 단순한 stack trace나 예외 이름이 강해 보인다는 이유만으로 심각도를 높이지 마세요.
 - explanation: 초보자도 이해할 수 있는 오류 의미
 - cause: 가장 가능성이 높은 원인. 추정이면 추정이라고 밝히기
 - solution_steps: 안전하고 실제로 확인 가능한 해결 순서를 2~7단계
