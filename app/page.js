@@ -8,6 +8,17 @@ const SUPABASE_URL = 'https://eghkbgjebsoiybojvoak.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3euAUhIGpr_qgTr-rgtiaQ_SDHdPJ5U';
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+async function getFunctionErrorMessage(error, fallback) {
+  try {
+    if (error?.context && typeof error.context.clone === 'function') {
+      const body = await error.context.clone().json();
+      if (body?.error) return body.error;
+    }
+  } catch {}
+
+  return error?.message || fallback;
+}
+
 export default function Home() {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -27,7 +38,11 @@ export default function Home() {
         method: 'GET',
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(
+          await getFunctionErrorMessage(error, '기록을 불러오지 못했습니다.')
+        );
+      }
       const data = invokeData || {};
       if (data.error) throw new Error(data.error);
       setHistory(data.items || []);
@@ -81,7 +96,11 @@ export default function Home() {
         body: form,
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(
+          await getFunctionErrorMessage(error, '에러 분석에 실패했습니다.')
+        );
+      }
       const data = invokeData || {};
 
       if (!data.success) {
