@@ -23,14 +23,13 @@ export default function Home() {
   async function loadHistory() {
     setLoadingHistory(true);
     try {
-      const { data, error } = await supabase.functions.invoke('error-ai', {
+      const { data: invokeData, error } = await supabase.functions.invoke('error-ai', {
         method: 'GET',
       });
 
       if (error) throw error;
-      const response = { ok: true };
-      const data = data || {};
-      if (!response.ok) throw new Error(data.error || '기록을 불러오지 못했습니다.');
+      const data = invokeData || {};
+      if (data.error) throw new Error(data.error);
       setHistory(data.items || []);
     } catch (error) {
       console.error(error);
@@ -78,15 +77,14 @@ export default function Home() {
       form.append('errorText', errorText.trim());
       form.append('context', context.trim());
 
-      const { data, error } = await supabase.functions.invoke('error-ai', {
+      const { data: invokeData, error } = await supabase.functions.invoke('error-ai', {
         body: form,
       });
 
       if (error) throw error;
-      const response = { ok: true };
-      const data = data || {};
+      const data = invokeData || {};
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || '에러 분석에 실패했습니다.');
       }
 
