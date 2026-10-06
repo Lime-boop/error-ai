@@ -31,4 +31,12 @@ alter table public.errors enable row level security;
 alter table public.error_analyses enable row level security;
 
 -- 브라우저가 DB를 직접 쓰지 않습니다.
--- Vercel 서버의 service role/secret key만 DB를 사용합니다.
+-- Supabase Edge Function의 service role/secret key만 DB를 사용합니다.
+
+-- Browser roles cannot read or write these tables directly.
+revoke all privileges on table public.errors from anon, authenticated;
+revoke all privileges on table public.error_analyses from anon, authenticated;
+
+-- Supabase Edge Function backend access.
+grant select, insert, update, delete on table public.errors to service_role;
+grant select, insert, update, delete on table public.error_analyses to service_role;
