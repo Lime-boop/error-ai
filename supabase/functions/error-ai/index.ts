@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
-const MODEL = Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash";
+const MODELS = ["gemini-3.7-flash", "gemini-3.6-flash"] as const;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 function json(data: unknown, status = 200) {
@@ -41,41 +41,64 @@ function getAdminClient() {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function requestGemini(apiKey: string, body: unknown) {
-  const endpoint =
-    "https://generativelanguage.googleapis.com/v1beta/models/" +
-    encodeURIComponent(MODEL) +
-    ":generateContent";
+  const retryable = new Set([429, 500, 502, 503, 504]);
+  let lastMessage = "Gemini 요청에 실패했습니다.";
 
-  const delays = [0, 1000, 2000, 4000];
-  let lastMessage = "";
+  for (const model of MODELS) {
+    const endpoint =
+      "https://generativelanguage.googleapis.com/v1beta/models/" +
+      encodeURIComponent(model) +
+      ":generateContent";
 
-  for (const delay of delays) {
-    if (delay) await sleep(delay);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      if (attempt > 0) await sleep(1200);
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify(body),
-    });
+      let response: Response;
 
-    const data = await response.json().catch(() => ({}));
+      try {
+        response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(28000),
+        });
+      } catch (error) {
+        lastMessage =
+          error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")
+            ? model + " 모델 응답 시간 초과"
+            : error instanceof Error ? error.message : "네트워크 연결 실패";
+        continue;
+      }
 
-    if (response.ok) return data;
+      const raw = await response.text();
+      let data: any = null;
 
-    lastMessage =
-      data?.error?.message || data?.message || "Gemini request failed.";
+      try {
+        if (raw) data = JSON.parse(raw);
+      } catch {
+        // API or gateway occasionally returns plain text.
+      }
 
-    if (![429, 500, 502, 503, 504].includes(response.status)) {
-      throw new Error(lastMessage);
+      if (response.ok && data) return data;
+
+      lastMessage =
+        data?.error?.message ||
+        data?.message ||
+        raw.replace(/\s+/g, " ").slice(0, 300) ||
+        "HTTP " + response.status;
+
+      if (!response.ok && !retryable.has(response.status)) {
+        throw new Error("Gemini 요청 실패 (" + model + "): " + lastMessage);
+      }
     }
   }
 
   throw new Error(
-    "Gemini 서버가 혼잡하거나 요청 한도에 도달했습니다. 잠시 후 다시 시도해주세요. " +
-      lastMessage
+    "Gemini 3.7 및 3.6 Flash가 모두 일시적으로 응답하지 않았습니다. " +
+      "잠시 후 다시 시도해주세요. 마지막 오류: " + lastMessage
   );
 }
 
